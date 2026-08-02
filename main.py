@@ -61,8 +61,11 @@ def is_tsl_thread(channel):
 async def count_pins(thread):
     counts = {"RA": 0, "RR": 0, "FA": 0, "FR": 0}
 
-    async for msg in thread.pins():
+    pins = await thread.pins()
+
+    for msg in pins:
         content = (msg.content or "").lower()
+
         counts["RA"] += content.count("reliable accept")
         counts["RR"] += content.count("reliable reject")
         counts["FA"] += content.count("feedback accept")
@@ -102,6 +105,7 @@ def build_embed(data):
 
 async def update_summary():
     target_channel = await get_target_channel()
+
     if target_channel is None:
         return
 
@@ -111,22 +115,41 @@ async def update_summary():
         for thread in guild.threads:
             if not is_tsl_thread(thread):
                 continue
+
             if thread.id == SUMMARY_CHANNEL_ID:
                 continue
+
             if thread.archived or thread.locked:
                 continue
 
             counts = await count_pins(thread)
             data[thread] = counts
 
-    embed = build_embed(data)
+    # Split embeds into pages of 25 fields
+    embeds = []
+
+    fields = list(data.items())
+
+    for i in range(0, len(fields), 25):
+        chunk = dict(fields[i:i + 25])
+        embeds.append(build_embed(chunk))
+
 
     summary_message = await get_summary_message(target_channel)
 
+
     if summary_message:
-        await summary_message.edit(embed=embed)
+        # edit the first message
+        await summary_message.edit(embed=embeds[0])
+
+        # send additional pages
+        for extra_embed in embeds[1:]:
+            await target_channel.send(embed=extra_embed)
+
     else:
-        await target_channel.send(embed=embed)
+        # first run, send all pages
+        for embed in embeds:
+            await target_channel.send(embed=embed)
 
 # events
 
