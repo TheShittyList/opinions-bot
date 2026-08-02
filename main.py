@@ -66,9 +66,7 @@ def is_tsl_thread(channel):
 async def count_pins(thread):
     counts = {"RA": 0, "RR": 0, "FA": 0, "FR": 0}
 
-    pins = await thread.pins()
-
-    for msg in pins:
+    async for msg in thread.pins():
         content = (msg.content or "").lower()
 
         counts["RA"] += content.count("reliable accept")
