@@ -1,3 +1,5 @@
+from dataclasses import fields
+
 import discord
 from discord.ext import commands
 import logging
@@ -46,10 +48,13 @@ async def get_target_channel():
     return channel
 
 async def get_summary_message(channel):
+    messages = []
+
     async for message in channel.history(limit=100):
         if message.author == bot.user and message.embeds:
-            return message
-    return None
+            messages.append(message)
+
+    return list(reversed(messages))
 
 def is_tsl_thread(channel):
     return (
@@ -125,29 +130,41 @@ async def update_summary():
             counts = await count_pins(thread)
             data[thread] = counts
 
+
     # Split embeds into pages of 25 fields
     embeds = []
 
     fields = list(data.items())
 
-    for i in range(0, len(fields), 25):
-        chunk = dict(fields[i:i + 25])
-        embeds.append(build_embed(chunk))
-
-
-    summary_message = await get_summary_message(target_channel)
-
-
-    if summary_message:
-        # edit the first message
-        await summary_message.edit(embed=embeds[0])
-
-        # send additional pages
-        for extra_embed in embeds[1:]:
-            await target_channel.send(embed=extra_embed)
-
+    if fields:
+        for i in range(0, len(fields), 25):
+            chunk = dict(fields[i:i + 25])
+            embeds.append(build_embed(chunk))
     else:
-        # first run, send all pages
+        embeds.append(build_embed({}))
+
+    summary_messages = await get_summary_message(target_channel)
+
+    # Update existing messages
+    if summary_messages:
+
+        for i, embed in enumerate(embeds):
+
+            if i < len(summary_messages):
+                await summary_messages[i].edit(embed=embed)
+
+            else:
+                await target_channel.send(embed=embed)
+
+        # Delete unused old pages
+        if len(summary_messages) > len(embeds):
+            for old_message in summary_messages[len(embeds):]:
+                await old_message.delete()
+
+
+    # First time creating messages
+    else:
+
         for embed in embeds:
             await target_channel.send(embed=embed)
 
