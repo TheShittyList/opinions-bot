@@ -88,13 +88,7 @@ def build_embed(data):
         embed.description = "No active threads."
         return embed
 
-    sorted_data = sorted(
-        data.items(),
-        key=lambda x: (x[1]["RA"], x[1]["FA"]),
-        reverse=True
-    )
-
-    for thread, counts in sorted_data:
+    for thread, counts in data.items():
         embed.add_field(
             name=f"{thread.mention}",
             value=(
@@ -131,14 +125,18 @@ async def update_summary():
             data[thread] = counts
 
 
-    # Split embeds into pages of 25 fields
+# Sort everything first, then split into pages of 25 fields
     embeds = []
 
-    fields = list(data.items())
+    sorted_data = sorted(
+        data.items(),
+        key=lambda x: (x[1]["RA"], x[1]["FA"]),
+        reverse=True
+    )
 
-    if fields:
-        for i in range(0, len(fields), 25):
-            chunk = dict(fields[i:i + 25])
+    if sorted_data:
+        for i in range(0, len(sorted_data), 25):
+            chunk = dict(sorted_data[i:i + 25])
             embeds.append(build_embed(chunk))
     else:
         embeds.append(build_embed({}))
