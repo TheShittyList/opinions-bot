@@ -1,3 +1,4 @@
-discord.py
-flask
-python-dotenv
+discord.py>=2.4,<3
+flask>=3,<4
+python-dotenv>=1,<2
+asyncpg>=0.29,<1
