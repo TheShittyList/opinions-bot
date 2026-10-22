@@ -201,14 +201,8 @@ async def iter_forum_threads(forum):
         if thread.id not in seen:
             seen.add(thread.id)
             yield thread
-    # Forum threads are normally public. This also covers accessible private archives.
-    try:
-        async for thread in forum.archived_threads(limit=None, private=True, joined=True):
-            if thread.id not in seen:
-                seen.add(thread.id)
-                yield thread
-    except (discord.Forbidden, discord.HTTPException):
-        logger.info('Private archived threads not accessible; continuing')
+    # Discord forum archived_threads() does not accept private/joined parameters.
+    # The public archived threads above are the supported archive source.
 
 
 async def scan_all():
